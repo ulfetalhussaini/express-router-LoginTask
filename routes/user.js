@@ -78,20 +78,16 @@ router.post('/checKlogin', (req, res) => {
   //  check if there token is there
   const token = req.headers.token;
   if (token) {
-    let payload = jwt.verify(token, 'Sn531')
-    try{
-    } catche(err){
-    }
-    res.status(400).send('invalid token');
-  }else{
-    res.send('There is no token');
     
-        res.status(400).send('Please login ..');
-      } else {
-    //  return('you are logged in')
-        req.decoded = decoded;
-        res.status(200).send(decoded);
-      }
+    try{
+          let payload = jwt.verify(token, 'Sn531');
+          res.send('you are logged in');
+    } catche(err){
+              res.status(400).send('invalid token you have to login');
+    }
+  }else{
+    res.send('you need to login');
+      } 
     });
   }
 
@@ -110,7 +106,7 @@ router.post('/login', (req, res) => {
       bcrypt.copmare(req.body.password, result.password, function(err, response){
         if(response){
           const token = jwt.sign({"_id": result._id}, 'key');
-          res.headers({'x-auth-token'});
+          res.headers({'x-auth-token': token}).send();
         }else{
               res.status(400).send(validating.error);
         }
