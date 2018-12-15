@@ -74,19 +74,18 @@ router.post('/register', (req, res) => {
   });
 });
 
-router.post('checKlogin', (req, res) => {
+router.post('/checKlogin', (req, res) => {
   //  check if there token is there
-  let token = req.headers['authorization'];
+  const token = req.headers.token;
   if (token) {
-
-    token = token.slice(8, token.length);
-  }
-  //  decode the token and chekc if it's validate
-  if (token) {
-      //  Get the payload from the jsonwebtoken
-    jwt.verify(token, 'Sn531', (err, decoded) => {
-      if (err) {
-     //  you have to login
+    let payload = jwt.verify(token, 'Sn531')
+    try{
+    } catche(err){
+    }
+    res.status(400).send('invalid token');
+  }else{
+    res.send('There is no token');
+    
         res.status(400).send('Please login ..');
       } else {
     //  return('you are logged in')
@@ -99,42 +98,33 @@ router.post('checKlogin', (req, res) => {
 });
 
 
-router.post('login', (req, res) => {
+router.post('/login', (req, res) => {
     //  chekc if there is such email get the user info
+  const validating  = uservalidating(req.body);
+  if(validating.error){
+    res.status(400).send('validating.error');
+  }else{
+    User.findOne({
+      email: req.body.email
+  }).then(result => {
+      bcrypt.copmare(req.body.password, result.password, function(err, response){
+        if(response){
+          const token = jwt.sign({"_id": result._id}, 'key');
+          res.headers({'x-auth-token'});
+        }else{
+              res.status(400).send(validating.error);
+        }
+                 
+                 
     User.findOne({
       email: req.body.email
     }, function (err, user) {
       if (err) {
         return res.status(500).send('Error on the server.');
       }
-    //  check if there is a user data (username & password) in the req body
-      if (!user) {
-        return res.status(404).send('No user found.');
-      } else {
-        var passwordIsValid = bcrypt.compareSync(req.body.password, user.password);
-      }
-    //  check if the password valid
-      if (!passwordIsValid) {
-        return res.status(401).send({
-          auth: false,
-          token: null
-        });
-      } else {
-  
-      }
-        //  create a new token and send it back to the user in the response header
-      var token = jwt.sign({
-        id: user._id
-      }, 'Sn531', {
-        expiresIn: 86400 // expires in 24 hours
-      });
-      res.setHeader('authorization', 'Bearer: ' + token);
-      res.status(200).send({
-        auth: true,
-        token: token
-      });
-    });
-});
+    
+      
+    };
 
 
 
