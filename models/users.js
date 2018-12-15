@@ -24,15 +24,18 @@ const userSchema = mongoose.Schema({
     type: Number,
     required: [true, 'Age Is Required']
   },
-  password:String,
-  email:String,
   name: {
     type: String,
     required: function () {
       return this.age > 3 ; //  Hamdon has lost a 5000 IQD
     }
   },
-
+  password: String,
+  email: {
+    type: String,
+    required: true,
+    unique: true
+  }
 });
 
 module.exports = mongoose.model('User', userSchema);
