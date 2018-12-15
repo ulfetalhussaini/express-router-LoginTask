@@ -1,4 +1,3 @@
-
 /*
  * This file handel all /api/user Routes
  *
@@ -12,6 +11,9 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const User = require('../models/users');
 const bcrypt = require('bcrypt');
+const auth =  require('../middleware/auth');
+
+
 
 /*
  *  @TODO you can use below to create a more complex Queries
@@ -55,8 +57,12 @@ router.get('/', (req, res) => {
   })
 });
 
+
+// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVjMTUwY2FjODdmZDc5MjY0MjQxM2ExYSIsImV4cCI6MTU0NDg4MzQ0NjY1NCwiaWF0IjoxNTQ0ODgzMzg2fQ.srGMRBcDaRLrPD63j_odBs-kQVuurtIeUT5zyPaIvs4
+
 //  Regastiration a new user
 router.post('/register', (req, res) => {
+  //  VALIDATION
   bcrypt.genSalt(10).then(salt => {
     bcrypt.hash(req.body.password, salt).then(hashed => {
       const user = new User({
@@ -67,61 +73,59 @@ router.post('/register', (req, res) => {
         email: req.body.email
       });
       user.save().then(result => {
-        const token = jwt.sign({id: result._id, exp: Date.now() + 1000 * 60 }, 'key')
-        res.header({'X-auth-token': token}).send();
+        const token = jwt.sign({_id: result._id, exp: Date.now() + 1000 * 60 }, 'key');
+        res.header({'x-auth-token': token}).send('New user has been added');
+      }).catch(err => {
+        res.send(err);
       })
     })
   });
 });
 
+// Done
 router.post('/checKlogin', (req, res) => {
-  //  check if there token is there
+  //  check if there is a token
   const token = req.headers.token;
-  if (token) {
-    
-    try{
-          let payload = jwt.verify(token, 'Sn531');
-          res.send('you are logged in');
-    } catche(err){
-              res.status(400).send('invalid token you have to login');
+  if(token){
+  //  decode the token and chekc if it's validate
+    try {
+      //  Get the payload from the jsonwebtoken
+      let payload = jwt.verify(token, 'key');
+      //  You can check the expiration if you want
+      res.send('you are logged in');
+    } catch (err) {
+      res.status(400).send('invalid token you have to login');
     }
   }else{
     res.send('you need to login');
-      } 
-    });
   }
-
 });
 
 
 router.post('/login', (req, res) => {
-    //  chekc if there is such email get the user info
-  const validating  = uservalidating(req.body);
+  //  check if there is a user data (username & password) in the req body
+  const validating = userValidating(req.body);
   if(validating.error){
-    res.status(400).send('validating.error');
-  }else{
-    User.findOne({
-      email: req.body.email
-  }).then(result => {
-      bcrypt.copmare(req.body.password, result.password, function(err, response){
+    res.status(400).send(validating.error);
+  }else {
+    //  chekc if there is such email get the user info
+    User.findOne({email: req.body.email})
+    .then(result => {
+      //  check if the password valid
+      bcrypt.compare(req.body.password, result.password, function(err, response) {
         if(response){
-          const token = jwt.sign({"_id": result._id}, 'key');
-          res.headers({'x-auth-token': token}).send();
+          const token = jwt.sign({ "_id": result._id }, 'key');
+          res.header({'x-auth-token': token}).send('Done');
         }else{
-              res.status(400).send(validating.error);
+          res.status(400).send('you have tried an incorect credentials');
         }
-                 
-                 
-    User.findOne({
-      email: req.body.email
-    }, function (err, user) {
-      if (err) {
-        return res.status(500).send('Error on the server.');
-      }
-    
-      
-    };
-
+      });
+    }).catch(err => {
+      res.status(404).send('there is no such user');
+    });
+  }
+  //  create a new token and send it back to the user in the response header
+});
 
 
 // Getting information
@@ -149,7 +153,6 @@ router.post('/', (req, res) => {
       name: req.body.name,
       age: req.body.age
     });
-
     //  Checking the Mongoose Schema Validating
     const v = user.validateSync();
     // If the validateSync returns any string, that means that there is somthing wrong in saving the data
@@ -161,10 +164,8 @@ router.post('/', (req, res) => {
       //  IF the user saved in the database
       res.send('You have added a new user');
       console.log(result);
-    })
-    .catch(err => {
+    }).catch(err => {
       //  IF the user hasn't saved in the database
-
       res.status(401).send(err);
       console.log(err);
     });
@@ -205,9 +206,11 @@ router.delete('/:id', (req, res) => {
 //  To validate the POST PUT requestes
 function userValidating(user) {
   const userSchema = {
-    'name': Joi.string().min(3).required(),
-    'age': Joi.number()
-  }
+    // 'name': Joi.string().min(3).required(),
+    // 'age': Joi.number(),
+    'email': Joi.string().min(3).required(),
+    'password': Joi.string().min(3).required()
+  };
   return Joi.validate(user, userSchema);
 }
 
